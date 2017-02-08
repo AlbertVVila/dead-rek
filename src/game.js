@@ -1,10 +1,10 @@
-onsole.log('im game!')
+console.log('im game!')
 const kbd = require('@dasilvacontin/keyboard')
 const randomColor = require('randomcolor')
 const deepEqual = require('deep-equal')
 
 document.addEventListener('keydown', function (event) {
-    event.preventDefault()
+    // event.preventDefault()
 })
 
 const socket = io()
@@ -26,24 +26,36 @@ let myPlayerId = null
 // hash playerId => playerData
 let players = {}
 
-function logic () {
-    // JSON for two equal objects should be the same string
-    // const oldInputs = JSON.stringify(Object.assign({}, myPlayer.inputs))
+const ACCEL = 1 / 500
 
+function updateInputs () {
     const { inputs } = myPlayer
-    const oldInputs = Object.assign({},  inputs)
 
     for (let key in inputs) {
         inputs[key] = kbd.isKeyDown(kbd[key])
     }
+}
 
-    if (inputs.LEFT_ARROW) myPlayer.vx--
-    if (inputs.RIGHT_ARROW) myPlayer.vx++
-    if (inputs.UP_ARROW) myPlayer.vy--
-    if (inputs.DOWN_ARROW) myPlayer.vy++
+function logic (delta) {
+    // JSON for two equal objects should be the same string
+    // const oldInputs = JSON.stringify(Object.assign({}, myPlayer.inputs))
+    const oldInputs = Object.assign({},  myPlayer.inputs)
+    updateInputs()
 
-    myPlayer.x += myPlayer.vx
-    myPlayer.y += myPlayer.vy
+    const vInc = ACCEL * delta
+    for (let playerId in players) {
+        const player = players[playerId]
+        const { inputs } = player
+        if (inputs.LEFT_ARROW) player.vx -= vInc
+        if (inputs.RIGHT_ARROW) player.vx += vInc
+        if (inputs.UP_ARROW) player.vy -= vInc
+        if (inputs.DOWN_ARROW) player.vy += vInc
+
+        player.x += player.vx * delta
+        player.y += player.vy * delta
+    }
+
+    myPlayer.timestamp = Date.now()
 
     if (!deepEqual(myPlayer.inputs, oldInputs)) {
         socket.emit('move', myPlayer)
@@ -71,9 +83,13 @@ function render () {
     }
 }
 
+let past = Date.now()
 function gameloop () {
     requestAnimationFrame(gameloop)
-    logic()
+    const now = Date.now()
+    const delta = now - past
+    past = now
+    logic(delta)
     render()
 }
 
