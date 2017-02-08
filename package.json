@@ -7,7 +7,6 @@
     "prebuild": "npm run test",
     "build": "browserify src/game.js -o public/bundle.js",
     "watch": "chokidar 'src/**/*.js' -c 'npm run build'",
-    
     "postinstall": "npm run build",
     "start": "node src/server.js"
   },

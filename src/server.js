@@ -16,10 +16,22 @@ app.use(function (req, res, next) {
 app.use(express.static('public'))
 
 const ACCEL = 1 / 500
-
+const spawntime = 10
 class GameServer {
   constructor () {
     this.players = {}
+    this.coins = {}
+    this.SetCoins()
+  }
+
+
+
+  SetCoins(){
+
+    for(var i=1; i<10; i++){
+      var newcoin = {x:Math.random()*1000,y:Math.random()*1000,points:10}
+      this.coins[i] = newcoin
+    }
   }
 
   onPlayerConnected (socket) {
@@ -40,17 +52,19 @@ class GameServer {
       id: socket.id,
       inputs
     }
+
+
     this.players[socket.id] = player
 
-    socket.emit('world:init', this.players, socket.id)
+    socket.emit('world:init', this.players, this.coins,socket.id)
 
     // so that the new players appears on other people's screen
     this.onPlayerMoved(socket, inputs)
   }
 
   onPlayerMoved (socket, inputs) {
-    console.log(inputs)
-    console.log(`${new Date()}: ${socket.id} moved`)
+ //   console.log(inputs)
+ //   console.log(`${new Date()}: ${socket.id} moved`)
     const player = this.players[socket.id]
     player.timestamp = Date.now()
     player.inputs = inputs
@@ -63,7 +77,7 @@ class GameServer {
     socket.broadcast.emit('playerDisconnected', socket.id)
   }
 
-  logic (delta) {
+  MovePlayers(delta){
     const vInc = ACCEL * delta
     for (let playerId in this.players) {
       const player = this.players[playerId]
@@ -76,6 +90,15 @@ class GameServer {
       player.x += player.vx * delta
       player.y += player.vy * delta
     }
+  }
+ 
+  deleteCoin(coinid){
+    delete this.coins[coinid]
+    io.sockets.emit('UpdateCoins',coinid)
+  }
+
+  logic (delta) {
+    this.MovePlayers(delta)
   }
 }
 
@@ -96,6 +119,12 @@ io.on('connection', function (socket) {
     game.onPlayerMoved(socket, inputs)
   })
 
+  //FALTA FUNCIÓ PERQUE ENVII ALS CLIENTS ACTUALITZACIÓ MONEDES
+
+  socket.on('coincolliding', (coinid) => {
+    console.log("server receives collision")
+    game.deleteCoin(coinid)
+  })
   socket.on('disconnect', () => {
     game.onPlayerDisconnected(socket)
   })
