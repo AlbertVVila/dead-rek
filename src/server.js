@@ -94,7 +94,7 @@ class GameServer {
  
   deleteCoin(coinid){
     delete this.coins[coinid]
-    io.sockets.emit('UpdateCoins',coinid)
+    io.sockets.emit('updateCoins',coinid)
   }
 
   logic (delta) {

@@ -66,6 +66,10 @@ class GameClient {
     }
   }
 
+  onDeleteCoins(coinid){
+    delete this.coins[coinid]
+  }
+
   onPlayerDisconnected (playerId) {
     delete this.players[playerId]
   }
@@ -187,6 +191,9 @@ socket.on('connect', function () {
     myPlayerId = myId
   })
   socket.on('playerMoved', game.onPlayerMoved.bind(game))
+  socket.on('updateCoins', function(coinid){
+    game.onDeleteCoins(coinid)
+  })
   socket.on('playerDisconnected', game.onPlayerDisconnected.bind(game))
 
   socket.on('game:pong', (serverNow) => {
