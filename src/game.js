@@ -1,24 +1,53 @@
-console.log('im game!')
+onsole.log('im game!')
 const kbd = require('@dasilvacontin/keyboard')
 const randomColor = require('randomcolor')
+const deepEqual = require('deep-equal')
+
 document.addEventListener('keydown', function (event) {
     event.preventDefault()
 })
 
 const socket = io()
-const myPlayer = { x: 100, y: 100, color: randomColor() }
+const myPlayer = {
+    x: 100,
+    y: 100,
+    vx: 0,
+    vy: 0,
+    inputs: {
+        LEFT_ARROW: false,
+        RIGHT_ARROW: false,
+        UP_ARROW: false,
+        DOWN_ARROW: false
+    },
+    color: randomColor()
+}
 let myPlayerId = null
 
 // hash playerId => playerData
 let players = {}
 
 function logic () {
-    if (kbd.isKeyDown(kbd.LEFT_ARROW)) {
-        myPlayer.x--
-    } else if (kbd.isKeyDown(kbd.RIGHT_ARROW)) {
-        myPlayer.x++
+    // JSON for two equal objects should be the same string
+    // const oldInputs = JSON.stringify(Object.assign({}, myPlayer.inputs))
+
+    const { inputs } = myPlayer
+    const oldInputs = Object.assign({},  inputs)
+
+    for (let key in inputs) {
+        inputs[key] = kbd.isKeyDown(kbd[key])
     }
-    socket.emit('move', myPlayer)
+
+    if (inputs.LEFT_ARROW) myPlayer.vx--
+    if (inputs.RIGHT_ARROW) myPlayer.vx++
+    if (inputs.UP_ARROW) myPlayer.vy--
+    if (inputs.DOWN_ARROW) myPlayer.vy++
+
+    myPlayer.x += myPlayer.vx
+    myPlayer.y += myPlayer.vy
+
+    if (!deepEqual(myPlayer.inputs, oldInputs)) {
+        socket.emit('move', myPlayer)
+    }
 }
 
 const canvas = document.createElement('canvas')
