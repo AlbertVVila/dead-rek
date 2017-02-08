@@ -21,11 +21,23 @@ io.on('connection', function (socket) {
 
   socket.emit('world:init', players, socket.id)
 
+  let lastPongTimestamp
+  let ping = 50
+  socket.on('game:ping', () => {
+    lastPongTimestamp = Date.now()
+    socket.emit('game:pong', Date.now())
+  })
+
   socket.on('move', function (player) {
-      console.log(`${socket.id} moved`)
+      console.log(`${new Date()}: ${socket.id} moved`)
+      player.timestamp = Date.now() - ping
       players[socket.id] = player
       player.id = socket.id
       socket.broadcast.emit('playerMoved', player)
+  })
+
+  socket.on('game:pung', () => {
+    ping = (Date.now() - lastPongTimestamp) / 2
   })
 
   socket.on('disconnect', function () {

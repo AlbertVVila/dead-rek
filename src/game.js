@@ -55,8 +55,6 @@ function logic (delta) {
         player.y += player.vy * delta
     }
 
-    myPlayer.timestamp = Date.now()
-
     if (!deepEqual(myPlayer.inputs, oldInputs)) {
         socket.emit('move', myPlayer)
     }
@@ -93,6 +91,16 @@ function gameloop () {
     render()
 }
 
+let lastPingTimestamp
+let clockDiff = 0 // how many ms the server is ahead from us
+let ping = Infinity
+
+function startPingHandshake () {
+    lastPingTimestamp = Date.now()
+    socket.emit('game:ping')
+}
+setInterval(startPingHandshake, 250)
+
 socket.on('connect', function () {
     socket.on('world:init', function (serverPlayers, myId) {
         myPlayerId = myId
@@ -103,10 +111,37 @@ socket.on('connect', function () {
 
     socket.on('playerMoved', function (player) {
         players[player.id] = player
+        const delta = (Date.now() + clockDiff) - player.timestamp
+
+        // increment position due to current velocity
+        // and update our velocity accordingly
+        player.x += player.vx * delta
+        player.y += player.vy * delta
+
+        const { inputs } = player
+        if (inputs.LEFT_ARROW && !inputs.RIGHT_ARROW) {
+            player.x -= ACCEL * Math.pow(delta, 2) / 2
+            player.vx -= ACCEL * delta
+        } else if (!inputs.LEFT_ARROW && inputs.RIGHT_ARROW) {
+            player.x += ACCEL * Math.pow(delta, 2) / 2
+            player.vx += ACCEL * delta
+        }
+        if (inputs.UP_ARROW && !inputs.DOWN_ARROW) {
+            player.y -= ACCEL * Math.pow(delta, 2) / 2
+            player.vy -= ACCEL * delta
+        } else if (!inputs.UP_ARROW && inputs.DOWN_ARROW) {
+            player.y += ACCEL * Math.pow(delta, 2) / 2
+            player.vy += ACCEL * delta
+        }
     })
 
     socket.on('playerDisconnected', function (playerId) {
         delete players[playerId]
+    })
+
+    socket.on('game:pong', (serverNow) => {
+        ping = (Date.now() - lastPingTimestamp) / 2
+        clockDiff = (serverNow + ping) - Date.now()
     })
 })
 
