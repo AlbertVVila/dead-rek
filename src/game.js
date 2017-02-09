@@ -28,7 +28,7 @@ class GameClient {
     console.log(player)
     this.players[player.id] = player
 
-    const delta = (Date.now() + clockDiff) - player.timestamp
+    const delta = (lastLogic + clockDiff) - player.timestamp
 
         // increment position due to current velocity
         // and update our velocity accordingly
@@ -52,6 +52,9 @@ class GameClient {
     }
   }
 
+  onPlayerShoot(player){
+    this.players[player.id] = player
+  }
   onCoinSpawned (coin) {
     this.coins[coin.id] = coin
   }
@@ -81,6 +84,8 @@ class GameClient {
     }
   }
 }
+
+
 const game = new GameClient()
 
 function updateInputs () {
@@ -108,9 +113,16 @@ canvas.width = window.innerWidth
 canvas.height = window.innerHeight
 document.body.appendChild(canvas)
 
+
+document.addEventListener('click', (event) => {
+  console.log("mousex :"+event.x+" mousey: "+event.y)
+    socket.emit('mouseclick',event.x,event.y,myPlayerId)
+})
+
 const ctx = canvas.getContext('2d')
 
 function gameRenderer (game) {
+ // console.log("render")
   ctx.fillStyle = 'white'
   ctx.fillRect(0, 0, window.innerWidth, window.innerHeight)
 
@@ -123,7 +135,7 @@ function gameRenderer (game) {
   }
 
   for (let playerId in game.players) {
-    const { color, x, y, score } = game.players[playerId]
+    const { color, x, y, score, shots } = game.players[playerId]
     ctx.save()
     ctx.translate(x, y)
     ctx.fillStyle = color
@@ -133,22 +145,28 @@ function gameRenderer (game) {
     if (playerId === myPlayerId) {
       ctx.strokeRect(-HALF_EDGE, -HALF_EDGE, PLAYER_EDGE, PLAYER_EDGE)
     }
-
     ctx.fillStyle = 'white'
     ctx.textAlign = 'center'
     ctx.font = '20px Arial'
     ctx.fillText(score, 0, 7)
     ctx.restore()
+    for(let shotId in shots){
+      const {sx,sy} = shots[shotId]
+      ctx.fillStyle = 'red'
+      ctx.beginPath()
+      ctx.arc(sx,sy,10,0,2*Math.PI)
+      ctx.fill()
+    }
   }
 }
 
-let past = Date.now()
+let lastLogic = Date.now()
 function gameloop () {
   requestAnimationFrame(gameloop)
 
   const now = Date.now()
-  const delta = now - past
-  past = now
+  const delta = now - lastLogic
+  lastLogic = now
 
   updateInputs()
   game.logic(delta)
@@ -174,7 +192,7 @@ socket.on('connect', function () {
   socket.on('playerDisconnected', game.onPlayerDisconnected.bind(game))
   socket.on('coinSpawned', game.onCoinSpawned.bind(game))
   socket.on('coinCollected', game.onCoinCollected.bind(game))
-
+  socket.on('playerShooting',game.onPlayerShoot.bind(game))
   socket.on('game:pong', (serverNow) => {
     ping = (Date.now() - lastPingTimestamp) / 2
     clockDiff = (serverNow + ping) - Date.now()
