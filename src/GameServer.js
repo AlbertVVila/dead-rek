@@ -105,6 +105,8 @@ class GameServer {
 
       player.x += player.vx * delta
       player.y += player.vy * delta
+      player.x = player.x % 2500
+      player.y = player.y % 1500
 
       for (let coinId in this.coins) { //COINS
         const coin = this.coins[coinId]

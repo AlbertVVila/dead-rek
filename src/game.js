@@ -85,7 +85,9 @@ class GameClient {
 
       player.x += player.vx * delta
       player.y += player.vy * delta
-
+      player.x = player.x % 2500
+      player.y = player.y % 1500
+      
       for(let shotid in shots){
          const shot = shots[shotid]
          shot.sx += shot.vx * delta
