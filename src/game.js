@@ -1,8 +1,7 @@
 /* globals requestAnimationFrame, io */
 const kbd = require('@dasilvacontin/keyboard')
 const deepEqual = require('deep-equal')
-const { ACCEL, COIN_RADIUS, PLAYER_EDGE } = require('./constants.js')
-
+const { ACCEL, COIN_RADIUS, PLAYER_EDGE, SHOT_RADIUS } = require('./constants.js')
 const socket = io()
 
 let myPlayerId = null
@@ -55,6 +54,11 @@ class GameClient {
   onPlayerShoot(player){
     this.players[player.id] = player
   }
+
+  onPlayerDMGD(player,player2){
+    this.players[player.id]= player
+    this.players[player2.id] = player2
+  }
   onCoinSpawned (coin) {
     this.coins[coin.id] = coin
   }
@@ -73,7 +77,7 @@ class GameClient {
     const vInc = ACCEL * delta
     for (let playerId in this.players) {
       const player = this.players[playerId]
-      const { inputs } = player
+      const { inputs,shots} = player
       if (inputs.LEFT_ARROW) player.vx -= vInc
       if (inputs.RIGHT_ARROW) player.vx += vInc
       if (inputs.UP_ARROW) player.vy -= vInc
@@ -81,6 +85,12 @@ class GameClient {
 
       player.x += player.vx * delta
       player.y += player.vy * delta
+
+      for(let shotid in shots){
+         const shot = shots[shotid]
+         shot.sx += shot.vx * delta
+         shot.sy += shot.vy * delta
+      }
     }
   }
 }
@@ -108,39 +118,60 @@ function updateInputs () {
   }
 }
 
+
+/*var btn = document.createElement("BUTTON");
+var t = document.createTextNode("GO!");
+btn.appendChild(t);
+document.body.appendChild(btn);
+btn.
+*/
 const canvas = document.createElement('canvas')
 canvas.width = window.innerWidth
 canvas.height = window.innerHeight
 document.body.appendChild(canvas)
-
-
+const ctx = canvas.getContext('2d')
+var img = new Image()
+img.src = "pokeball.PNG"
+var playerimg = new Image()
+playerimg.src = "ash.png"
 document.addEventListener('click', (event) => {
-  console.log("mousex :"+event.x+" mousey: "+event.y)
-    socket.emit('mouseclick',event.x,event.y,myPlayerId)
+  console.log("mousex :"+event.pageX+" mousey: "+event.pageY)
+    socket.emit('mouseclick',event.pageX,event.pageY,myPlayerId)
 })
 
-const ctx = canvas.getContext('2d')
+
 
 function gameRenderer (game) {
- // console.log("render")
+ // bg
   ctx.fillStyle = 'white'
   ctx.fillRect(0, 0, window.innerWidth, window.innerHeight)
-
+ //userlogin
+ /*ctx.fillStyle = 'black'
+    ctx.textAlign = 'center'
+    ctx.font = '20px Arial'
+    ctx.fillText("Username:", canvas.width/2, canvas.height/2)
+    ctx.restore()*/
+   // var input = document.createElement("textarea" 
+    
+    //coins
   for (let coinId in game.coins) {
     const coin = game.coins[coinId]
-    ctx.fillStyle = 'yellow'
+   /* ctx.fillStyle = 'yellow'
     ctx.beginPath()
     ctx.arc(coin.x, coin.y, COIN_RADIUS, 0, 2 * Math.PI)
-    ctx.fill()
+    ctx.fill() */
+    ctx.drawImage(img,coin.x,coin.y,COIN_RADIUS,COIN_RADIUS)
   }
-
+  //players
   for (let playerId in game.players) {
-    const { color, x, y, score, shots } = game.players[playerId]
+    const { color, x, y, score, shots, team } = game.players[playerId]
     ctx.save()
     ctx.translate(x, y)
-    ctx.fillStyle = color
+    //ctx.fillStyle = color
     const HALF_EDGE = PLAYER_EDGE / 2
-    ctx.fillRect(-HALF_EDGE, -HALF_EDGE, PLAYER_EDGE, PLAYER_EDGE)
+    playerimg.src = team
+    ctx.drawImage(playerimg,-HALF_EDGE, -HALF_EDGE, PLAYER_EDGE, PLAYER_EDGE)
+    //ctx.fillRect(-HALF_EDGE, -HALF_EDGE, PLAYER_EDGE, PLAYER_EDGE)
     // ctx.fillRect(x - HALF_EDGE, y - HALF_EDGE, PLAYER_EDGE, PLAYER_EDGE)
     if (playerId === myPlayerId) {
       ctx.strokeRect(-HALF_EDGE, -HALF_EDGE, PLAYER_EDGE, PLAYER_EDGE)
@@ -150,11 +181,12 @@ function gameRenderer (game) {
     ctx.font = '20px Arial'
     ctx.fillText(score, 0, 7)
     ctx.restore()
+    if(playerId != myPlayerId) ctx.fillStyle = 'red'
+    else ctx.fillStyle = 'blue'
     for(let shotId in shots){
       const {sx,sy} = shots[shotId]
-      ctx.fillStyle = 'red'
       ctx.beginPath()
-      ctx.arc(sx,sy,10,0,2*Math.PI)
+      ctx.arc(sx,sy,SHOT_RADIUS,0,2*Math.PI)
       ctx.fill()
     }
   }
@@ -192,6 +224,7 @@ socket.on('connect', function () {
   socket.on('playerDisconnected', game.onPlayerDisconnected.bind(game))
   socket.on('coinSpawned', game.onCoinSpawned.bind(game))
   socket.on('coinCollected', game.onCoinCollected.bind(game))
+  socket.on('playerDMGD', game.onPlayerDMGD.bind(game))
   socket.on('playerShooting',game.onPlayerShoot.bind(game))
   socket.on('game:pong', (serverNow) => {
     ping = (Date.now() - lastPingTimestamp) / 2
