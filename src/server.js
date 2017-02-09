@@ -4,6 +4,11 @@ var app = express()
 var http = require('http').Server(app)
 var io = require('socket.io')(http)
 const randomColor = require('randomcolor')
+const {
+  ACCEL,
+  COIN_RADIUS,
+  PLAYER_EDGE
+} = require('./constants.js')
 
 /*
 // middleware
@@ -15,11 +20,21 @@ app.use(function (req, res, next) {
 
 app.use(express.static('public'))
 
-const ACCEL = 1 / 500
-
 class GameServer {
   constructor () {
     this.players = {}
+    this.coins = {}
+    this.nextCoinId = 0
+    this.lastCoinSpawn = Date.now()
+
+    for (let i = 0; i < 10; ++i) {
+      const coin = {
+        id: this.nextCoinId++,
+        x: Math.random() * 500,
+        y: Math.random() * 500
+      }
+      this.coins[coin.id] = coin
+    }
   }
 
   onPlayerConnected (socket) {
@@ -38,11 +53,12 @@ class GameServer {
       vy: 0,
       color: randomColor(),
       id: socket.id,
+      score: 0,
       inputs
     }
     this.players[socket.id] = player
 
-    socket.emit('world:init', this.players, socket.id)
+    socket.emit('world:init', this.players, this.coins, socket.id)
 
     // so that the new players appears on other people's screen
     this.onPlayerMoved(socket, inputs)
@@ -75,6 +91,28 @@ class GameServer {
 
       player.x += player.vx * delta
       player.y += player.vy * delta
+
+      for (let coinId in this.coins) {
+        const coin = this.coins[coinId]
+        const dist = Math.abs(player.x - coin.x) + Math.abs(player.y - coin.y)
+        const radiusSum = COIN_RADIUS + (PLAYER_EDGE / 2)
+        if (radiusSum > dist) {
+          delete this.coins[coinId]
+          player.score++
+          io.sockets.emit('coinCollected', player.id, coinId)
+        }
+      }
+
+      if (Date.now() - this.lastCoinSpawn > 1000) {
+        const coin = {
+          id: this.nextCoinId++,
+          x: Math.random() * 500,
+          y: Math.random() * 500
+        }
+        this.coins[coin.id] = coin
+        this.lastCoinSpawn = Date.now()
+        io.sockets.emit('coinSpawned', coin)
+      }
     }
   }
 }
