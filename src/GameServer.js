@@ -7,7 +7,8 @@ const {
   SHOT_RADIUS,
   SHOT_DMG,
   SCREEN_SIZEX,
-  SCREEN_SIZEY
+  SCREEN_SIZEY,
+  DEATH_POINT
 } = require('./constants.js')
 
 class GameServer {
@@ -162,7 +163,7 @@ class GameServer {
         }
       }
 
-      if (Date.now() - this.lastCoinSpawn > 5) {
+      if (Date.now() - this.lastCoinSpawn > 300) {
         const coin = {
           id: this.nextCoinId++,
           x: Math.random() * SCREEN_SIZEX,
@@ -189,9 +190,17 @@ class GameServer {
              player2.score-= SHOT_DMG
              this.teams[player2.teamid].score-=SHOT_DMG
              this.io.sockets.emit('playerDMGD',player,player2)
+             if(player2.score <= DEATH_POINT){
+                 this.io.sockets.emit('playerdead',player2)
+                
+                 
+             }
            }
          
          }
+         if(shot.sx > SCREEN_SIZEX || shot.sy > SCREEN_SIZEY
+           || shot.sx <0 || shot.sy<0)
+             delete shots[shotid]
       }
     }
   }

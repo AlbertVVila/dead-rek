@@ -17,6 +17,7 @@ class GameClient {
     this.players = {}
     this.coins = {}
     this.teams = {}
+    this.dead = false
   }
 
   onWorldInit (serverPlayers, serverCoins, teams) {
@@ -77,6 +78,14 @@ class GameClient {
     }
   }
 
+  onPlayerDead(player){
+    if(player.id == myPlayerId){
+      console.log("is dead "+this.dead)
+      this.dead=true
+      console.log("disconnecting")
+      socket.disconnect()
+    } 
+  }
 
   onPlayerShoot(player){
     this.players[player.id] = player
@@ -203,14 +212,14 @@ function gameRenderer (game) {
   for (let playerId in game.players) {
     
     const { color, x, y, score, shots, team, teamid } = game.players[playerId]
-    console.log(game.players[myPlayerId].teamid+" sees "+teamid)
+    //console.log(game.players[myPlayerId].teamid+" sees "+teamid)
     ctx.save()
     ctx.translate(x, y)
     //ctx.fillStyle = color
     const HALF_EDGE = PLAYER_EDGE / 2
     playerimg = new Image()
     playerimg.src = team
-    console.log("playerseen image "+team)
+    //console.log("playerseen image "+team)
     ctx.drawImage(playerimg,-HALF_EDGE, -HALF_EDGE, PLAYER_EDGE, PLAYER_EDGE)
     //ctx.fillRect(-HALF_EDGE, -HALF_EDGE, PLAYER_EDGE, PLAYER_EDGE)
     // ctx.fillRect(x - HALF_EDGE, y - HALF_EDGE, PLAYER_EDGE, PLAYER_EDGE)
@@ -246,6 +255,18 @@ function gameRenderer (game) {
       ctx.font = '15px Arial'
       ctx.fillText(i+1+". "+sortedteam[i].name+": "+sortedteam[i].score,posx,posy+i*20)
     } //utilitzar length i no variable magica
+  //draw deadimage
+  if(game.dead){
+    console.log("DEAD KAPPA")
+     var kappa = new Image()
+     kappa.src = "kappa.png"
+     let size = 1000
+     ctx.drawImage(kappa, window.innerWidth/2-size/2,window.innerHeight/2-size/2, size,size)
+     ctx.fillStyle = '#07ab5f'
+     ctx.textAlign = 'center'
+     ctx.font = 'bold 100px Arial'
+     ctx.fillText("U DEAD MATE",  window.innerWidth/3,window.innerHeight/3)
+  }
 }
 
 function sort(t){
@@ -296,6 +317,7 @@ socket.on('connect', function () {
     myPlayerId = myId
   })
   socket.on('playerMoved', game.onPlayerMoved.bind(game))
+  socket.on('playerdead',game.onPlayerDead.bind(game))
   socket.on('updatescores',game.onUpdateScore.bind(game))
   socket.on('playerDisconnected', game.onPlayerDisconnected.bind(game))
   socket.on('coinSpawned', game.onCoinSpawned.bind(game))
