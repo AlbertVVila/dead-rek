@@ -119,7 +119,7 @@ class GameServer {
         }
       }
 
-      if (Date.now() - this.lastCoinSpawn > 1000) {
+      if (Date.now() - this.lastCoinSpawn > 10) {
         const coin = {
           id: this.nextCoinId++,
           x: Math.random() * 2000,
