@@ -1,7 +1,7 @@
 /* globals requestAnimationFrame, io */
 const kbd = require('@dasilvacontin/keyboard')
 const deepEqual = require('deep-equal')
-const { ACCEL, COIN_RADIUS, PLAYER_EDGE, SHOT_RADIUS } = require('./constants.js')
+const { ACCEL, COIN_RADIUS, PLAYER_EDGE, SHOT_RADIUS, SCREEN_SIZEX, SCREEN_SIZEY } = require('./constants.js')
 const socket = io()
 
 let myPlayerId = null
@@ -38,18 +38,42 @@ class GameClient {
 
     const { inputs } = player
     if (inputs.LEFT_ARROW && !inputs.RIGHT_ARROW) {
-      player.x -= ACCEL * Math.pow(delta, 2) / 2
-      player.vx -= ACCEL * delta
-    } else if (!inputs.LEFT_ARROW && inputs.RIGHT_ARROW) {
+      if(player.x <= SCREEN_SIZEX && player.x>=0 ){
+        player.x -= ACCEL * Math.pow(delta, 2) / 2
+        player.vx -= ACCEL * delta
+      }
+    }else if (!inputs.LEFT_ARROW && inputs.RIGHT_ARROW) {
+      if(player.x<= SCREEN_SIZEX && player.x>=0 ){
       player.x += ACCEL * Math.pow(delta, 2) / 2
       player.vx += ACCEL * delta
+      }
     }
     if (inputs.UP_ARROW && !inputs.DOWN_ARROW) {
-      player.y -= ACCEL * Math.pow(delta, 2) / 2
-      player.vy -= ACCEL * delta
+      if(player.y <= SCREEN_SIZEY && player.y>=0 ){
+        player.y -= ACCEL * Math.pow(delta, 2) / 2
+        player.vy -= ACCEL * delta
+      }
     } else if (!inputs.UP_ARROW && inputs.DOWN_ARROW) {
+      if(player.y<= SCREEN_SIZEY && player.y>=0 ){
       player.y += ACCEL * Math.pow(delta, 2) / 2
       player.vy += ACCEL * delta
+      }
+    }
+    if(player.x > SCREEN_SIZEX) {
+      player.x = SCREEN_SIZEX
+      player.vx = 0;
+    }
+    if(player.x < 0) {
+      player.x = 0
+      player.vx = 0;
+    }
+    if(player.y > SCREEN_SIZEY) {
+      player.y = SCREEN_SIZEY
+      player.vy = 0;
+    }
+    if(player.y < 0) {
+      player.y = 0
+      player.vy = 0;
     }
   }
 
@@ -89,11 +113,29 @@ class GameClient {
       if (inputs.RIGHT_ARROW) player.vx += vInc
       if (inputs.UP_ARROW) player.vy -= vInc
       if (inputs.DOWN_ARROW) player.vy += vInc
-
+      if(player.x <= SCREEN_SIZEX && player.x>=0 ){
       player.x += player.vx * delta
-      player.y += player.vy * delta
-      player.x = player.x % 2500
-      player.y = player.y % 1500
+      }
+      if(player.y <= SCREEN_SIZEY && player.y>=0 ){
+      player.y += player.vy * delta}
+      
+      if(player.x >= SCREEN_SIZEX){
+        player.x = SCREEN_SIZEX
+        player.vx = 0
+      }
+      if(player.y >= SCREEN_SIZEY){
+         player.y = SCREEN_SIZEY
+         player.vy = 0 
+      } 
+      if(player.x <0){
+         player.x = 0
+         player.vx = 0 
+      } 
+      if(player.y <0){
+          player.y = 0
+          player.vy = 0
+      }  
+      
       
       for(let shotid in shots){
          const shot = shots[shotid]
@@ -137,7 +179,6 @@ const ctx = canvas.getContext('2d')
 var img = new Image()
 img.src = "pokeball.PNG"
 var playerimg = new Image()
-playerimg.src = "ash.png"
 document.addEventListener('click', (event) => {
   console.log("mousex :"+event.pageX+" mousey: "+event.pageY)
     socket.emit('mouseclick',event.pageX,event.pageY,myPlayerId)
@@ -160,12 +201,15 @@ function gameRenderer (game) {
   }
   //players
   for (let playerId in game.players) {
+    
     const { color, x, y, score, shots, team, teamid } = game.players[playerId]
+    console.log(game.players[myPlayerId].teamid+" sees "+teamid)
     ctx.save()
     ctx.translate(x, y)
     //ctx.fillStyle = color
     const HALF_EDGE = PLAYER_EDGE / 2
     playerimg.src = team
+    console.log("playerseen image "+team)
     ctx.drawImage(playerimg,-HALF_EDGE, -HALF_EDGE, PLAYER_EDGE, PLAYER_EDGE)
     //ctx.fillRect(-HALF_EDGE, -HALF_EDGE, PLAYER_EDGE, PLAYER_EDGE)
     // ctx.fillRect(x - HALF_EDGE, y - HALF_EDGE, PLAYER_EDGE, PLAYER_EDGE)

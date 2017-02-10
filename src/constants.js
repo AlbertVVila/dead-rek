@@ -5,5 +5,8 @@ module.exports = {
   PLAYER_EDGE: 50,
   SHOT_SPEED: 1/2,
   SHOT_DMG: 5,
-  SHOT_RADIUS: 10
+  SHOT_RADIUS: 10,
+  SCREEN_SIZEX: 1900,
+  SCREEN_SIZEY: 920,
+  VMAX: 1/2
 }

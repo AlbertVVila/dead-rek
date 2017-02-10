@@ -5,7 +5,9 @@ const {
   PLAYER_EDGE,
   SHOT_SPEED,
   SHOT_RADIUS,
-  SHOT_DMG
+  SHOT_DMG,
+  SCREEN_SIZEX,
+  SCREEN_SIZEY
 } = require('./constants.js')
 
 class GameServer {
@@ -20,8 +22,8 @@ class GameServer {
     for (let i = 0; i < 20; ++i) {
       const coin = {
         id: this.nextCoinId++,
-        x: Math.random() * 2500,
-        y: Math.random() * 1500
+        x: Math.random() * SCREEN_SIZEX,
+        y: Math.random() * SCREEN_SIZEY
       }
       this.coins[coin.id] = coin
     }
@@ -57,8 +59,8 @@ class GameServer {
     var randomIndex = Math.floor(Math.random()*teamimg.length)//poner length en ves de 4
     const shots = {}
     const player = {
-      x: Math.random() * 500,
-      y: Math.random() * 500,
+      x: Math.random() * SCREEN_SIZEX-150,
+      y: Math.random() * SCREEN_SIZEY,
       vx: 0,
       vy: 0,
       color: randomColor(),
@@ -125,11 +127,28 @@ class GameServer {
       if (inputs.RIGHT_ARROW) player.vx += vInc
       if (inputs.UP_ARROW) player.vy -= vInc
       if (inputs.DOWN_ARROW) player.vy += vInc
-
-      player.x += player.vx * delta
-      player.y += player.vy * delta
-      player.x = player.x % 2500
-      player.y = player.y % 1500
+      if(player.x <= SCREEN_SIZEX && player.x>=0 ){
+        player.x += player.vx * delta
+      }
+      if(player.y <= SCREEN_SIZEY && player.y>=0 ){
+        player.y += player.vy * delta
+      }
+      if(player.x >= SCREEN_SIZEX){
+        player.x = SCREEN_SIZEX
+        player.vx = 0
+      }
+      if(player.y >= SCREEN_SIZEY){
+         player.y = SCREEN_SIZEY
+         player.vy = 0 
+      } 
+      if(player.x <0){
+         player.x = 0
+         player.vx = 0 
+      } 
+      if(player.y <0){
+          player.y = 0
+          player.vy = 0
+      }
 
       for (let coinId in this.coins) { //COINS
         const coin = this.coins[coinId]
@@ -143,11 +162,11 @@ class GameServer {
         }
       }
 
-      if (Date.now() - this.lastCoinSpawn > 10) {
+      if (Date.now() - this.lastCoinSpawn > 500) {
         const coin = {
           id: this.nextCoinId++,
-          x: Math.random() * 2000,
-          y: Math.random() * 1000
+          x: Math.random() * SCREEN_SIZEX,
+          y: Math.random() * SCREEN_SIZEY,
         }
         this.coins[coin.id] = coin
         this.lastCoinSpawn = Date.now()
