@@ -162,7 +162,7 @@ class GameServer {
         }
       }
 
-      if (Date.now() - this.lastCoinSpawn > 500) {
+      if (Date.now() - this.lastCoinSpawn > 5) {
         const coin = {
           id: this.nextCoinId++,
           x: Math.random() * SCREEN_SIZEX,
