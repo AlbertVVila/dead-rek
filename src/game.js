@@ -16,11 +16,13 @@ class GameClient {
   constructor () {
     this.players = {}
     this.coins = {}
+    this.teams = {}
   }
 
-  onWorldInit (serverPlayers, serverCoins) {
+  onWorldInit (serverPlayers, serverCoins, teams) {
     this.players = serverPlayers
     this.coins = serverCoins
+    this.teams = teams
   }
 
   onPlayerMoved (player) {
@@ -51,6 +53,7 @@ class GameClient {
     }
   }
 
+
   onPlayerShoot(player){
     this.players[player.id] = player
   }
@@ -67,8 +70,12 @@ class GameClient {
     delete this.coins[coinId]
     const player = this.players[playerId]
     player.score++
+    this.teams[player.teamid].score++
   }
 
+  onUpdateScore(teams){
+    this.teams=teams
+  }
   onPlayerDisconnected (playerId) {
     delete this.players[playerId]
   }
@@ -119,12 +126,7 @@ function updateInputs () {
 }
 
 
-/*var btn = document.createElement("BUTTON");
-var t = document.createTextNode("GO!");
-btn.appendChild(t);
-document.body.appendChild(btn);
-btn.
-*/
+
 const canvas = document.createElement('canvas')
 canvas.width = window.innerWidth
 canvas.height = window.innerHeight
@@ -140,18 +142,10 @@ document.addEventListener('click', (event) => {
 })
 
 
-
 function gameRenderer (game) {
  // bg
   ctx.fillStyle = 'white'
   ctx.fillRect(0, 0, window.innerWidth, window.innerHeight)
- //userlogin
- /*ctx.fillStyle = 'black'
-    ctx.textAlign = 'center'
-    ctx.font = '20px Arial'
-    ctx.fillText("Username:", canvas.width/2, canvas.height/2)
-    ctx.restore()*/
-   // var input = document.createElement("textarea" 
     
     //coins
   for (let coinId in game.coins) {
@@ -164,7 +158,7 @@ function gameRenderer (game) {
   }
   //players
   for (let playerId in game.players) {
-    const { color, x, y, score, shots, team } = game.players[playerId]
+    const { color, x, y, score, shots, team, teamid } = game.players[playerId]
     ctx.save()
     ctx.translate(x, y)
     //ctx.fillStyle = color
@@ -181,7 +175,7 @@ function gameRenderer (game) {
     ctx.font = '20px Arial'
     ctx.fillText(score, 0, 7)
     ctx.restore()
-    if(playerId != myPlayerId) ctx.fillStyle = 'red'
+    if(teamid!= game.players[myPlayerId].teamid) ctx.fillStyle = 'purple'
     else ctx.fillStyle = 'blue'
     for(let shotId in shots){
       const {sx,sy} = shots[shotId]
@@ -190,8 +184,42 @@ function gameRenderer (game) {
       ctx.fill()
     }
   }
+  //draw leaderboard
+    ctx.fillStyle = '#C1FFC1'
+    ctx.fillRect(window.innerWidth-160,0,155,120)
+    ctx.fillStyle = 'black'
+    ctx.textAlign = 'center'
+    ctx.font = 'bold 20px Arial'
+    let posx = window.innerWidth-80
+    let posy = 20
+    ctx.fillText("LEADERBOARD", window.innerWidth-80,20)
+    posy+=30
+    let sortedteam = sort(game.teams)
+    for(var i=0; i<4; ++i){
+      ctx.font = '15px Arial'
+      ctx.fillText(i+1+". "+sortedteam[i].name+": "+sortedteam[i].score,posx,posy+i*20)
+    } //utilitzar length i no variable magica
 }
 
+function sort(t){
+  let sorted = t
+  for(var i=0;i<4; ++i){
+    for(var j=0;j<4; ++j){
+      if (t[i].score> t[j].score){
+        aux = sorted[i]
+        sorted[i] = t[j]
+        sorted[j] = aux
+      } else if( t[i].score == t[j].score){
+        if(t[i].name > t[j].name){
+          aux = sorted[i]
+          sorted[i] = t[j]
+          sorted[j] = aux
+        }
+      }
+    }
+  }
+  return sorted
+}
 let lastLogic = Date.now()
 function gameloop () {
   requestAnimationFrame(gameloop)
@@ -216,11 +244,12 @@ function startPingHandshake () {
 setInterval(startPingHandshake, 250)
 
 socket.on('connect', function () {
-  socket.on('world:init', function (serverPlayers, serverCoins, myId) {
-    game.onWorldInit(serverPlayers, serverCoins)
+  socket.on('world:init', function (serverPlayers, serverCoins, myId, teams) {
+    game.onWorldInit(serverPlayers, serverCoins,teams)
     myPlayerId = myId
   })
   socket.on('playerMoved', game.onPlayerMoved.bind(game))
+  socket.on('updatescores',game.onUpdateScore.bind(game))
   socket.on('playerDisconnected', game.onPlayerDisconnected.bind(game))
   socket.on('coinSpawned', game.onCoinSpawned.bind(game))
   socket.on('coinCollected', game.onCoinCollected.bind(game))

@@ -15,6 +15,7 @@ class GameServer {
     this.io = io
     this.nextCoinId = 0
     this.lastCoinSpawn = Date.now()
+    this.teams ={}
 
     for (let i = 0; i < 20; ++i) {
       const coin = {
@@ -24,7 +25,25 @@ class GameServer {
       }
       this.coins[coin.id] = coin
     }
+
+    for(let i = 0; i<4 ; ++i){
+      const equip = {
+        name : "",
+        score:0
+       }
+       var nom
+       switch(i){
+          case 0: nom = 'ash' ; break
+          case 1: nom = 'cat' ; break
+          case 2: nom = 'drunk'; break
+          case 3: nom = 'isee' ; break
+       }
+       equip.name = nom
+       this.teams[i] = equip
+    }
   }
+
+  
 
   onPlayerConnected (socket) {
     console.log(`${socket.id} connected`)
@@ -34,8 +53,8 @@ class GameServer {
       UP_ARROW: false,
       DOWN_ARROW: false
     }
-    var teams = ["ash.png","cat.png","drunk.jpg","Isee.jpg"]
-    var randomIndex = Math.floor(Math.random()*teams.length)//poner length en ves de 4
+    var teamimg = ["ash.png","cat.png","drunk.jpg","Isee.jpg"]
+    var randomIndex = Math.floor(Math.random()*teamimg.length)//poner length en ves de 4
     const shots = {}
     const player = {
       x: Math.random() * 500,
@@ -48,11 +67,12 @@ class GameServer {
       shots,
       lastshotid:0,
       inputs,
-      team : teams[randomIndex]
+      team : teamimg[randomIndex],
+      teamid: randomIndex
     }
     this.players[socket.id] = player
 
-    socket.emit('world:init', this.players, this.coins, socket.id)
+    socket.emit('world:init', this.players, this.coins, socket.id,this.teams)
 
     // so that the new players appears on other people's screen
     this.onPlayerMoved(socket, inputs)
@@ -82,6 +102,7 @@ class GameServer {
         vy: (dy/dtotal) * SHOT_SPEED,
       }
       player.score--
+      this.teams[player.teamid].score--
       player.shots[player.lastshotid++] = shot
       this.io.sockets.emit('playerShooting',player)
     }
@@ -89,6 +110,8 @@ class GameServer {
 
   onPlayerDisconnected (socket) {
     console.log(`${socket.id} disconnected`)
+    const player = this.players[socket.id]
+    this.teams[player.teamid].score-= player.score
     delete this.players[socket.id]
     socket.broadcast.emit('playerDisconnected', socket.id)
   }
@@ -113,6 +136,7 @@ class GameServer {
         if (radiusSum > dist) {
           delete this.coins[coinId]
           player.score++
+          this.teams[player.teamid].score++
           this.io.sockets.emit('coinCollected', player.id, coinId)
         }
       }
@@ -133,20 +157,26 @@ class GameServer {
          shot.sx += shot.vx * delta
          shot.sy += shot.vy * delta
          for(let playerId2 in this.players){
-           if(playerId2 == playerId) continue
-            const player2 = this.players[playerId2]
+           const player2 = this.players[playerId2]
+           if(this.teams[player2.teamid] == this.teams[player.teamid]) continue
             const dist = Math.abs(player2.x - shot.sx) + Math.abs(player2.y - shot.sy)
            const radiusSum = SHOT_RADIUS + (PLAYER_EDGE / 2)
            if(radiusSum > dist){
              delete this.players[playerId].shots[shotid]
              player.score+= SHOT_DMG
+             this.teams[player.teamid].score+=SHOT_DMG
              player2.score-= SHOT_DMG
+             this.teams[player2.teamid].score-=SHOT_DMG
              this.io.sockets.emit('playerDMGD',player,player2)
            }
          
          }
       }
     }
+  }
+
+  updateScores(){
+    this.io.sockets.emit('updatescores',this.teams)
   }
 }
 

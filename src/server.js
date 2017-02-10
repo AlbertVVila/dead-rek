@@ -48,6 +48,7 @@ setInterval(function () {
   const delta = now - past
   past = now
   game.logic(delta)
+  game.updateScores()
 }, 20)
 
 http.listen(process.env.PORT || 3000, function () {
