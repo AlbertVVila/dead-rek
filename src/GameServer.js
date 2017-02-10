@@ -128,6 +128,8 @@ class GameServer {
 
       player.x += player.vx * delta
       player.y += player.vy * delta
+      player.x = player.x % 2500
+      player.y = player.y % 1500
 
       for (let coinId in this.coins) { //COINS
         const coin = this.coins[coinId]
@@ -141,7 +143,7 @@ class GameServer {
         }
       }
 
-      if (Date.now() - this.lastCoinSpawn > 1000) {
+      if (Date.now() - this.lastCoinSpawn > 10) {
         const coin = {
           id: this.nextCoinId++,
           x: Math.random() * 2000,
