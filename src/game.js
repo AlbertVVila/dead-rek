@@ -208,6 +208,7 @@ function gameRenderer (game) {
     ctx.translate(x, y)
     //ctx.fillStyle = color
     const HALF_EDGE = PLAYER_EDGE / 2
+    playerimg = new Image()
     playerimg.src = team
     console.log("playerseen image "+team)
     ctx.drawImage(playerimg,-HALF_EDGE, -HALF_EDGE, PLAYER_EDGE, PLAYER_EDGE)
