@@ -192,7 +192,7 @@ class GameServer {
         }
       }
       if(this.numplayers>0 && this.numcoins <= 5*this.numplayers){
-        if (((Date.now() - this.lastCoinSpawn) > 1000/this.numplayers) || this.numcoins< this.numplayers) {
+        if (((Date.now() - this.lastCoinSpawn) > 1000/this.numplayers) || this.numcoins<= 2.5*this.numplayers) {
           const coin = {
             id: this.nextCoinId++,
             x: Math.random() * SCREEN_SIZEX,
