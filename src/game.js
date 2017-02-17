@@ -1,7 +1,7 @@
 /* globals requestAnimationFrame, io */
 const kbd = require('@dasilvacontin/keyboard')
 const deepEqual = require('deep-equal')
-const { ACCEL, COIN_RADIUS, PLAYER_EDGE, SHOT_RADIUS, SCREEN_SIZEX, SCREEN_SIZEY } = require('./constants.js')
+const { ACCEL, COIN_RADIUS, PLAYER_EDGE, SHOT_RADIUS, SCREEN_SIZEX, SCREEN_SIZEY, vMAX } = require('./constants.js')
 const socket = io()
 
 let myPlayerId = null
@@ -36,28 +36,32 @@ class GameClient {
         // and update our velocity accordingly
     player.x += player.vx * delta
     player.y += player.vy * delta
-
+    const vInc = ACCEL*delta
     const { inputs } = player
     if (inputs.LEFT_ARROW && !inputs.RIGHT_ARROW) {
       if(player.x <= SCREEN_SIZEX && player.x>=0 ){
-        player.x -= ACCEL * Math.pow(delta, 2) / 2
-        player.vx -= ACCEL * delta
+        //player.x -= ACCEL * Math.pow(delta, 2) / 2
+        player.vx-vInc <= -vMAX ? player.vx == -vMAX : player.vx -= vInc
+        player.x -= vInc*delta/2
       }
     }else if (!inputs.LEFT_ARROW && inputs.RIGHT_ARROW) {
       if(player.x<= SCREEN_SIZEX && player.x>=0 ){
-      player.x += ACCEL * Math.pow(delta, 2) / 2
-      player.vx += ACCEL * delta
+     // player.x += ACCEL * Math.pow(delta, 2) / 2
+     player.vx+vInc >= vMAX ? player.vx == vMAX : player.vx += vInc
+     player.x += vInc*delta/2
       }
     }
     if (inputs.UP_ARROW && !inputs.DOWN_ARROW) {
       if(player.y <= SCREEN_SIZEY && player.y>=0 ){
-        player.y -= ACCEL * Math.pow(delta, 2) / 2
-        player.vy -= ACCEL * delta
+       // player.y -= ACCEL * Math.pow(delta, 2) / 2
+        player.vy-vInc <= -vMAX ? player.vy == -vMAX : player.vy -= vInc
+        player.y -= vInc*delta/2
       }
     } else if (!inputs.UP_ARROW && inputs.DOWN_ARROW) {
       if(player.y<= SCREEN_SIZEY && player.y>=0 ){
-      player.y += ACCEL * Math.pow(delta, 2) / 2
-      player.vy += ACCEL * delta
+      //player.y += ACCEL * Math.pow(delta, 2) / 2
+      player.vy+vInc >= vMAX ? player.vy == vMAX : player.vy += vInc
+      player.y+= vInc*delta/2
       }
     }
     if(player.x > SCREEN_SIZEX) {
@@ -118,10 +122,24 @@ class GameClient {
     for (let playerId in this.players) {
       const player = this.players[playerId]
       const { inputs,shots} = player
-      if (inputs.LEFT_ARROW) player.vx -= vInc
-      if (inputs.RIGHT_ARROW) player.vx += vInc
-      if (inputs.UP_ARROW) player.vy -= vInc
-      if (inputs.DOWN_ARROW) player.vy += vInc
+      if (inputs.LEFT_ARROW) player.vx-vInc <= -vMAX ? player.vx == -vMAX : player.vx -= vInc
+      if (inputs.RIGHT_ARROW) player.vx+vInc >= vMAX ? player.vx == vMAX : player.vx += vInc
+      if (inputs.UP_ARROW) player.vy-vInc <= -vMAX ? player.vy == -vMAX : player.vy -= vInc
+      if (inputs.DOWN_ARROW) player.vy+vInc >= vMAX ? player.vy == vMAX : player.vy += vInc
+      if(!inputs.LEFT_ARROW && !inputs.RIGHT_ARROW){
+        if(player.vx>0){
+            player.vx-vInc/3 >=0 ? player.vx-=vInc/3 : player.vx=0
+        }else if(player.vx<0){
+           player.vx+vInc/3 <=0 ? player.vx+=vInc/3 : player.vx=0
+        } 
+      }
+      if(!inputs.UP_ARROW && !inputs.DOWN_ARROW){
+        if(player.vy>0){
+            player.vy-vInc/3 >=0 ? player.vy-=vInc/3 : player.vy=0
+        }else if(player.vy<0){
+           player.vy+vInc/3 <=0 ? player.vy+=vInc/3 : player.vy=0
+        } 
+      }
       if(player.x <= SCREEN_SIZEX && player.x>=0 ){
       player.x += player.vx * delta
       }
@@ -224,6 +242,8 @@ function gameRenderer (game) {
     //ctx.fillRect(-HALF_EDGE, -HALF_EDGE, PLAYER_EDGE, PLAYER_EDGE)
     // ctx.fillRect(x - HALF_EDGE, y - HALF_EDGE, PLAYER_EDGE, PLAYER_EDGE)
     if (playerId === myPlayerId) {
+      ctx.strokeStyle = '#40bf40'
+      ctx.lineWidth = 4
       ctx.strokeRect(-HALF_EDGE, -HALF_EDGE, PLAYER_EDGE, PLAYER_EDGE)
     }
     ctx.fillStyle = 'white'
@@ -314,6 +334,9 @@ setInterval(startPingHandshake, 250)
 socket.on('connect', function () {
   socket.on('world:init', function (serverPlayers, serverCoins, myId, teams) {
     game.onWorldInit(serverPlayers, serverCoins,teams)
+    myAudio = new Audio('Pokemon.mp3')
+    myAudio.loop= true
+    myAudio.play()
     myPlayerId = myId
   })
   socket.on('playerMoved', game.onPlayerMoved.bind(game))
