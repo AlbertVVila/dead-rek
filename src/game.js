@@ -27,7 +27,7 @@ class GameClient {
   }
 
   onPlayerMoved (player) {
-    console.log(player)
+   // console.log(player)
     this.players[player.id] = player
 
     const delta = (lastLogic + clockDiff) - player.timestamp
