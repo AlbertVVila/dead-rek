@@ -217,7 +217,7 @@ class GameServer {
            if(radiusSum > dist){
              delete this.players[playerId].shots[shotid]
              player.score+= SHOT_DMG-2
-             this.teams[player.teamid].score+=SHOT_DMG
+             this.teams[player.teamid].score+=SHOT_DMG-2
              player2.score-= SHOT_DMG
              this.teams[player2.teamid].score-=SHOT_DMG
              this.io.sockets.emit('playerDMGD',player,player2)
